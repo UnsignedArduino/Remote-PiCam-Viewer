@@ -21,6 +21,7 @@ class RemotePiCamGUI(MainWindow):
     def __init__(self):
         super().__init__()
         self.title = "Remote PiCam"
+        self.resizable(False, False)
         self.create_gui()
         self.on_close = self.close_window
         self.image_queue = Queue(maxsize=32)
@@ -36,8 +37,6 @@ class RemotePiCamGUI(MainWindow):
         logger.debug("Creating GUI elements")
         self.image_label = Label(self)
         self.image_label.display_mode = DisplayModes.ImageOnly
-        blank_image = Image.new("RGBA", (720, 480))
-        self.image_label.image = ImageTk.PhotoImage(blank_image)
         self.image_label.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
         self.status_label = Label(self, text="Nothing to do yet")
         self.status_label.grid(row=1, column=0, padx=1, pady=1, sticky=tk.NW)
