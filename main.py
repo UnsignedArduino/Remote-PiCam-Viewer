@@ -9,7 +9,8 @@ from TkZero.Button import Button
 from TkZero.Dialog import CustomDialog
 from TkZero.Label import Label, DisplayModes
 from TkZero.MainWindow import MainWindow
-from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator
+from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
+    MenuCheckbutton
 from TkZero.Progressbar import Progressbar, ProgressModes
 from TkZero.Vector import Position
 
@@ -32,6 +33,7 @@ class RemotePiCamGUI(MainWindow):
         self.title = "Remote PiCam"
         self.resizable(False, False)
         self.create_gui()
+        self.create_menu()
         self.on_close = self.close_window
         self.update_image()
         self.lift()
@@ -43,18 +45,28 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         logger.debug("Creating GUI elements")
-        self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
-        self.remake_menu()
 
         self.image_label = Label(self)
         self.image_label.display_mode = DisplayModes.ImageOnly
         self.image_label.image = ImageTk.PhotoImage(
-            Image.new("RGBA", (320, 240))
+            Image.new("RGBA", (300, 50))
         )
         self.image_label.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
 
         self.status_label = Label(self, text="Nothing to do yet")
         self.status_label.grid(row=1, column=0, padx=1, pady=1, sticky=tk.SW)
+
+    def create_menu(self) -> None:
+        """
+        Create the menu.
+
+        :return: None.
+        """
+        logger.debug("Creating menu")
+        self.stream_paused_var = tk.BooleanVar(self, value=False)
+        self.stream_paused_var.trace_add("write", self.update_paused_status)
+        self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
+        self.remake_menu()
 
     def remake_menu(self) -> None:
         """
@@ -76,8 +88,24 @@ class RemotePiCamGUI(MainWindow):
                 MenuSeparator(),
                 MenuCommand(label="Exit", underline=0,
                             command=self.close_window)
+            ]),
+            MenuCascade(label="Stream", items=[
+                MenuCheckbutton(label="Stream paused", underline=7,
+                                enabled=self.cam.is_connected,
+                                variable=self.stream_paused_var)
             ])
         ]
+
+    def update_paused_status(self, *args) -> None:
+        """
+        Update the status bar when we pause or resume the stream.
+
+        :return: None.
+        """
+        if self.stream_paused_var.get():
+            self.status_label.text = "Paused."
+        else:
+            self.status_label.text = "Resume."
 
     def close_window(self) -> None:
         """
@@ -209,7 +237,8 @@ class RemotePiCamGUI(MainWindow):
                     self.image_queue.get()
                 if image is None:
                     break
-                self.image_queue.put(ImageTk.PhotoImage(image))
+                if not self.stream_paused_var.get():
+                    self.image_queue.put(ImageTk.PhotoImage(image))
         finally:
             self.spawn_disconnect_thread()
 
