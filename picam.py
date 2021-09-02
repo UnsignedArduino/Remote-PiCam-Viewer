@@ -91,7 +91,6 @@ class RemotePiCam:
             img_stream.write(self._connection.read(img_len))
             img_stream.seek(0)
             img_pil = Image.open(img_stream)
-            img_pil.verify()
             return img_pil
         except Exception:
             failed = True
