@@ -60,12 +60,15 @@ class RemotePiCam:
         self._server_socket.listen(0)
         logger.debug(f"Attempting to connect to a PiCam with name "
                      f"{self._cam_name}")
-        service = nw0.discover(self._cam_name, timeout)
+        try:
+            service = nw0.discover(self._cam_name, timeout)
+        except nw0.core.SocketTimedOutError:
+            return False
         if service is None:
             logger.warning("Failed to find PiCam")
             return False
         else:
-            logger.info(f"Successfully connected to PiCam '{self._cam_name}'"
+            logger.info(f"Successfully connected to PiCam '{self._cam_name}' "
                         f"at address {service}")
             nw0.send_message_to(service, self._get_ip_addr())
             self._cam_address = service
