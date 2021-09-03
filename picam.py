@@ -54,9 +54,40 @@ class RemotePiCam:
                 "min": 0,
                 "max": 100,
                 "value": 50
+            },
+            "contrast": {
+                "min": -100,
+                "max": 100,
+                "value": 0
+            },
+            "effect": {
+                "selected": "none",
+                "available": [
+                    "none",
+                    "negative",
+                    "solarize",
+                    "sketch",
+                    "denoise",
+                    "emboss",
+                    "oilpaint",
+                    "hatch",
+                    "gpen",
+                    "pastel",
+                    "watercolor",
+                    "film",
+                    "blur",
+                    "saturation",
+                    "colorswap",
+                    "washedout",
+                    "posterise",
+                    "colorpoint",
+                    "colorbalance",
+                    "cartoon",
+                    "deinterlace1",
+                    "deinterlace2"
+                ]
             }
         }
-
     def _get_ip_addr(self) -> str:
         """
         Get the IP address of this machine.

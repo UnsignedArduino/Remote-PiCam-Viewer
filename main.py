@@ -75,6 +75,8 @@ class RemotePiCamGUI(MainWindow):
         self.stream_paused_var.trace_add("write", self.update_paused_status)
         self.awb_mode_var = tk.StringVar(self, value="auto")
         self.awb_mode_var.trace_add("write", self.update_awb_status)
+        self.effect_var = tk.StringVar(self, value="none")
+        self.effect_var.trace_add("write", self.update_effect_status)
         self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
         self.remake_menu()
 
@@ -94,6 +96,14 @@ class RemotePiCamGUI(MainWindow):
                 value=mode,
                 label=mode.title(),
                 variable=self.awb_mode_var,
+                enabled=self.cam.is_connected
+            ))
+        available_effects = []
+        for effect in self.cam.settings["effect"]["available"]:
+            available_effects.append(MenuRadiobutton(
+                value=effect,
+                label=effect.title(),
+                variable=self.effect_var,
                 enabled=self.cam.is_connected
             ))
         self.menu_bar.items = [
@@ -128,7 +138,9 @@ class RemotePiCamGUI(MainWindow):
                             command=self.set_brightness),
                 MenuCommand(label="Set contrast", underline=4,
                             enabled=self.cam.is_connected,
-                            command=self.set_contrast)
+                            command=self.set_contrast),
+                MenuCascade(label="Set image effect mode", underline=4,
+                            items=available_effects),
             ]),
         ]
 
@@ -346,6 +358,31 @@ class RemotePiCamGUI(MainWindow):
             self.status_label.text = "Paused."
         else:
             self.status_label.text = "Resume."
+
+    def update_effect_status(self, *args) -> None:
+        """
+        Update the status bar when we set the image effect of the stream.
+
+        :return: None.
+        """
+        try:
+            self.cam.settings["effect"]["selected"] = self.effect_var.get()
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream image effect!",
+                              detail=f"Exception: {e}")
+            self.status_label.text = f"Failed to set effect to " \
+                                     f"\"{self.effect_var.get()}\"!"
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set image effect!",
+                             detail=f"New value: "
+                                    f"{self.effect_var.get()}")
+            self.status_label.text = f"Effect set to " \
+                                     f"\"{self.effect_var.get()}\"!"
 
     def update_awb_status(self, *args) -> None:
         """
