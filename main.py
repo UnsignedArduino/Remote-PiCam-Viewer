@@ -7,6 +7,7 @@ from threading import Thread
 from PIL import ImageTk, Image
 from TkZero.Button import Button
 from TkZero.Dialog import CustomDialog
+from TkZero import Dialog
 from TkZero.Label import Label, DisplayModes
 from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
@@ -28,6 +29,7 @@ class RemotePiCamGUI(MainWindow):
         self.connecting = False
         self.stop_try = False
         self.image_queue = Queue(maxsize=32)
+        self.curr_img = None
         self.cam = RemotePiCam(cam_name, port)
         super().__init__()
         self.title = "Remote PiCam"
@@ -92,8 +94,12 @@ class RemotePiCamGUI(MainWindow):
             MenuCascade(label="Stream", items=[
                 MenuCheckbutton(label="Stream paused", underline=7,
                                 enabled=self.cam.is_connected,
-                                variable=self.stream_paused_var)
-            ])
+                                variable=self.stream_paused_var),
+                MenuSeparator(),
+                MenuCommand(label="Take photo", underline=0,
+                            enabled=self.curr_img is not None,
+                            command=self.take_photo)
+            ]),
         ]
 
     def update_paused_status(self, *args) -> None:
@@ -106,6 +112,84 @@ class RemotePiCamGUI(MainWindow):
             self.status_label.text = "Paused."
         else:
             self.status_label.text = "Resume."
+
+    def take_photo(self) -> None:
+        """
+        Take a photo of the stream and show a dialog on what you want to do
+        with it.
+
+        :return: None.
+        """
+        self.photo_taken = self.curr_img.copy()
+        self.photo_window = CustomDialog(self)
+        self.photo_window.title = "Take a photo"
+        self.photo_window.resizable(False, False)
+        photo_taken_lbl = Label(self.photo_window,
+                                text="Photo taken! What would you like to "
+                                     "do with it?")
+        photo_taken_lbl.grid(row=0, column=0, columnspan=3, padx=1, pady=1,
+                             sticky=tk.NW)
+        photo_thumbnail_lbl = Label(self.photo_window)
+        photo_thumbnail_lbl.display_mode = DisplayModes.ImageOnly
+        thumbnail = self.photo_taken.copy()
+        thumbnail.thumbnail((320, 240))
+        photo_thumbnail_lbl.image = ImageTk.PhotoImage(thumbnail)
+        photo_thumbnail_lbl.grid(row=1, column=0, columnspan=3, padx=1, pady=1,
+                                 sticky=tk.NW)
+        self.show_photo_btn = Button(self.photo_window,
+                                     text="Show in image viewer",
+                                     command=self.photo_taken.show)
+        self.show_photo_btn.grid(row=2, column=0, padx=1, pady=1,
+                                 sticky=tk.NW + tk.E)
+        self.save_photo_btn = Button(self.photo_window,
+                                     text="Save to file",
+                                     command=self.save_photo_taken)
+        self.save_photo_btn.grid(row=2, column=1, padx=1, pady=1,
+                                 sticky=tk.NW + tk.E)
+        self.close_btn = Button(self.photo_window,
+                                text="Close",
+                                command=self.photo_window.close)
+        self.close_btn.grid(row=2, column=2, padx=1, pady=1,
+                            sticky=tk.NW + tk.E)
+        self.photo_window.lift()
+        self.photo_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.photo_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.photo_window.size.height / 2))
+        )
+        self.photo_window.grab_set()
+        self.photo_window.grab_focus()
+        self.photo_window.wait_till_destroyed()
+
+    def save_photo_taken(self) -> None:
+        """
+        Save the current photo to a file after opening a dialog.
+
+        :return: None.
+        """
+        logger.debug("Asking user to select a location to save photo")
+        path = Dialog.save_file(
+            title="Select a location to save your photo...",
+            file_types=(("Portable Network Graphics (PNG) files", "*.png"),
+                        ("JPEG files", "*.jpeg"),
+                        ("Graphics Interchange Format (GIF) files", "*.gif"),
+                        ("Bitmap (BMP) files", "*.bmp"),
+                        ("All files", "*.*"))
+        )
+        if path is not None:
+            logger.info(f"Saving photo to {path}")
+            try:
+                self.photo_taken.save(path)
+            except Exception as e:
+                Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                                  message="There was an error saving your "
+                                          "picture!",
+                                  detail=f"Exception: {e}")
+            else:
+                Dialog.show_info(self, title="Remote PiCam: Success!",
+                                 message="Successfully saved photo!",
+                                 detail=f"Saved to {path}")
 
     def close_window(self) -> None:
         """
@@ -209,7 +293,9 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         try:
-            self.image_label.image = self.image_queue.get_nowait()
+            image = self.image_queue.get_nowait()
+            self.curr_img = image
+            self.image_label.image = ImageTk.PhotoImage(image)
         except queue.Empty:
             pass
         self.after(50, self.update_image)
@@ -238,7 +324,7 @@ class RemotePiCamGUI(MainWindow):
                 if image is None:
                     break
                 if not self.stream_paused_var.get():
-                    self.image_queue.put(ImageTk.PhotoImage(image))
+                    self.image_queue.put(image)
         finally:
             self.spawn_disconnect_thread()
 
