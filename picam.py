@@ -94,11 +94,11 @@ class RemotePiCam:
             self._connected = True
             return True
 
-    def get_image(self) -> Union[Image.Image, None]:
+    def get_image(self) -> Union[tuple[Image.Image, int], None]:
         """
         Get an image from the PiCam.
 
-        :return: A PIL.Image, or None if disconnected.
+        :return: A tuple of a PIL.Image and the size, or None if disconnected.
         """
         failed = False
         if not self.is_connected:
@@ -112,7 +112,7 @@ class RemotePiCam:
             img_stream.write(self._connection.read(img_len))
             img_stream.seek(0)
             img_pil = Image.open(img_stream)
-            return img_pil
+            return img_pil, img_stream.tell()
         except Exception:
             failed = True
         finally:
