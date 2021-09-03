@@ -34,7 +34,6 @@ class RemotePiCam:
         self._connection = None
         self._connected = False
         self.settings = {
-            "resolution": (720, 480),
             "awb_mode": {
                 "selected": "auto",
                 "available": [
@@ -86,8 +85,15 @@ class RemotePiCam:
                     "deinterlace1",
                     "deinterlace2"
                 ]
-            }
+            },
+            "resolution": (720, 480),
+            "saturation": {
+                "min": -100,
+                "max": 100,
+                "value": 0
+            },
         }
+
     def _get_ip_addr(self) -> str:
         """
         Get the IP address of this machine.

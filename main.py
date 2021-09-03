@@ -128,9 +128,6 @@ class RemotePiCamGUI(MainWindow):
                             enabled=self.curr_img is not None,
                             command=self.take_photo),
                 MenuSeparator(),
-                MenuCommand(label="Set resolution", underline=4,
-                            enabled=self.cam.is_connected,
-                            command=self.set_resolution),
                 MenuCascade(label="Set auto-white balance mode", underline=4,
                             items=available_awb_modes),
                 MenuCommand(label="Set brightness", underline=4,
@@ -141,8 +138,85 @@ class RemotePiCamGUI(MainWindow):
                             command=self.set_contrast),
                 MenuCascade(label="Set image effect mode", underline=4,
                             items=available_effects),
+                MenuCommand(label="Set resolution", underline=4,
+                            enabled=self.cam.is_connected,
+                            command=self.set_resolution),
+                MenuCommand(label="Set saturation", underline=4,
+                            enabled=self.cam.is_connected,
+                            command=self.set_saturation),
             ]),
         ]
+
+    def set_saturation(self) -> None:
+        """
+        Set the saturation of the stream.
+
+        :return: None.
+        """
+        self.saturation_window = CustomDialog(self)
+        self.saturation_window.title = "Set the stream saturation"
+        self.saturation_window.resizable(False, False)
+        for i in range(2):
+            self.saturation_window.columnconfigure(i, weight=1)
+            self.saturation_window.rowconfigure(i, weight=1)
+        new_satur_frame = Frame(self.saturation_window)
+        new_satur_frame.grid(row=0, column=0, columnspan=2,
+                             sticky=tk.W + tk.E)
+        new_satur_lbl = Label(new_satur_frame, text="New saturation: ")
+        new_satur_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        curr_satur_lbl = Label(new_satur_frame, text="0%")
+        curr_satur_lbl.grid(row=0, column=2, padx=1, pady=1, sticky=tk.NE)
+
+        def update_curr_satur_lbl(new_val):
+            curr_satur_lbl.text = f"{round(new_val)}%"
+
+        self.new_saturation_scale = Scale(new_satur_frame, length=200,
+                                          minimum=-100.0, maximum=100.0,
+                                          command=update_curr_satur_lbl)
+        self.new_saturation_scale.value = -100
+        self.new_saturation_scale.grid(row=0, column=1, padx=1, pady=1,
+                                       sticky=tk.NW + tk.E)
+        set_satur_btn = Button(self.saturation_window, text="Apply",
+                               command=self.apply_saturation)
+        set_satur_btn.grid(row=1, column=0, padx=1, pady=1,
+                           sticky=tk.NW + tk.E)
+        close_btn = Button(self.saturation_window, text="Close",
+                           command=self.saturation_window.close)
+        close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.saturation_window.lift()
+        self.saturation_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.saturation_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.saturation_window.size.height / 2))
+        )
+        self.saturation_window.update()
+        self.new_saturation_scale.value = 0
+        self.saturation_window.grab_set()
+        self.saturation_window.grab_focus()
+        self.saturation_window.wait_till_destroyed()
+
+    def apply_saturation(self) -> None:
+        """
+        Set the saturation of the PiCam and update it.
+
+        :return: None.
+        """
+        try:
+            saturation = int(self.new_saturation_scale.value)
+            self.cam.settings["saturation"]["value"] = saturation
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream saturation!",
+                              detail=f"Exception: {e}")
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set stream saturation!",
+                             detail=f"New saturation: "
+                                    f"{saturation}%")
 
     def set_contrast(self) -> None:
         """
