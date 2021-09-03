@@ -17,6 +17,7 @@ from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
     MenuCheckbutton, MenuRadiobutton
 from TkZero.Progressbar import Progressbar, ProgressModes
 from TkZero.Vector import Position
+from TkZero.Scale import Scale
 
 from create_logger import create_logger
 from picam import RemotePiCam
@@ -121,9 +122,83 @@ class RemotePiCamGUI(MainWindow):
                             enabled=self.cam.is_connected,
                             command=self.set_resolution),
                 MenuCascade(label="Set auto-white balance mode", underline=4,
-                            items=available_awb_modes)
+                            items=available_awb_modes),
+                MenuCommand(label="Set brightness", underline=4,
+                            enabled=self.cam.is_connected,
+                            command=self.set_brightness)
             ]),
         ]
+
+    def set_brightness(self) -> None:
+        """
+        Set the brightness of the stream.
+
+        :return: None.
+        """
+        self.bright_window = CustomDialog(self)
+        self.bright_window.title = "Set the stream brightness"
+        self.bright_window.resizable(False, False)
+        for i in range(2):
+            self.bright_window.columnconfigure(i, weight=1)
+            self.bright_window.rowconfigure(i, weight=1)
+        new_bright_frame = Frame(self.bright_window)
+        new_bright_frame.grid(row=0, column=0, columnspan=2,
+                              sticky=tk.W + tk.E)
+        new_bright_lbl = Label(new_bright_frame, text="New brightness: ")
+        new_bright_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        curr_bright_lbl = Label(new_bright_frame, text="50%")
+        curr_bright_lbl.grid(row=0, column=2, padx=1, pady=1, sticky=tk.NE)
+
+        def update_curr_bright_lbl(new_val):
+            curr_bright_lbl.text = f"{round(new_val)}%"
+
+        self.new_bright_scale = Scale(new_bright_frame, length=200,
+                                      minimum=0.0, maximum=100.0,
+                                      command=update_curr_bright_lbl)
+        self.new_bright_scale.value = 100
+        self.new_bright_scale.grid(row=0, column=1, padx=1, pady=1,
+                                   sticky=tk.NW + tk.E)
+        set_bright_btn = Button(self.bright_window, text="Apply",
+                                command=self.apply_brightness)
+        set_bright_btn.grid(row=1, column=0, padx=1, pady=1,
+                            sticky=tk.NW + tk.E)
+        close_btn = Button(self.bright_window, text="Close",
+                           command=self.bright_window.close)
+        close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.bright_window.lift()
+        self.bright_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.bright_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.bright_window.size.height / 2))
+        )
+        self.bright_window.update()
+        self.new_bright_scale.value = 50
+        self.bright_window.grab_focus()
+        self.bright_window.grab_set()
+        self.bright_window.wait_till_destroyed()
+
+    def apply_brightness(self) -> None:
+        """
+        Set the brightness of the PiCam and update it.
+
+        :return: None.
+        """
+        try:
+            brightness = int(self.new_bright_scale.value)
+            self.cam.settings["brightness"]["value"] = brightness
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream brightness!",
+                              detail=f"Exception: {e}")
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set stream brightness!",
+                             detail=f"New brightness: "
+                                    f"{brightness}%")
 
     def set_resolution(self) -> None:
         """
@@ -454,11 +529,12 @@ class RemotePiCamGUI(MainWindow):
         """
         try:
             while self.cam.is_connected:
-                image, self.curr_img_len = self.cam.get_image()
+                try:
+                    image, self.curr_img_len = self.cam.get_image()
+                except TypeError:
+                    break
                 if self.image_queue.full():
                     self.image_queue.get()
-                if image is None:
-                    break
                 if not self.stream_paused_var.get():
                     self.image_queue.put(image)
                     self.frames_last_sec += 1

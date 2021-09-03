@@ -49,6 +49,11 @@ class RemotePiCam:
                     "flash",
                     "horizon"
                 ]
+            },
+            "brightness": {
+                "min": 0,
+                "max": 100,
+                "value": 50
             }
         }
 
