@@ -34,7 +34,22 @@ class RemotePiCam:
         self._connection = None
         self._connected = False
         self.settings = {
-            "resolution": (720, 480)
+            "resolution": (720, 480),
+            "awb_mode": {
+                "selected": "auto",
+                "available": [
+                    "off",
+                    "auto",
+                    "sunlight",
+                    "cloudy",
+                    "shade",
+                    "tungsten",
+                    "fluorescent",
+                    "incandescent",
+                    "flash",
+                    "horizon"
+                ]
+            }
         }
 
     def _get_ip_addr(self) -> str:
@@ -73,7 +88,7 @@ class RemotePiCam:
         else:
             logger.info(f"Successfully connected to PiCam '{self._cam_name}' "
                         f"at address {service}")
-            nw0.send_message_to(service, self._get_ip_addr())
+            self.settings = nw0.send_message_to(service, self._get_ip_addr())
             self._cam_address = service
             self._connection = self._server_socket.accept()[0].makefile("rb")
             self._connected = True

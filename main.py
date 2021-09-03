@@ -14,7 +14,7 @@ from TkZero.Frame import Frame
 from TkZero.Label import Label, DisplayModes
 from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
-    MenuCheckbutton
+    MenuCheckbutton, MenuRadiobutton
 from TkZero.Progressbar import Progressbar, ProgressModes
 from TkZero.Vector import Position
 
@@ -70,6 +70,8 @@ class RemotePiCamGUI(MainWindow):
         logger.debug("Creating menu")
         self.stream_paused_var = tk.BooleanVar(self, value=False)
         self.stream_paused_var.trace_add("write", self.update_paused_status)
+        self.awb_mode_var = tk.StringVar(self, value="auto")
+        self.awb_mode_var.trace_add("write", self.update_awb_status)
         self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
         self.remake_menu()
 
@@ -81,6 +83,16 @@ class RemotePiCamGUI(MainWindow):
         """
         logger.debug("Redrawing menus")
         logger.debug(f"Connected: {self.cam.is_connected}")
+        available_awb_modes = []
+        for mode in self.cam.settings["awb_mode"]["available"]:
+            if mode == "off":
+                continue
+            available_awb_modes.append(MenuRadiobutton(
+                value=mode,
+                label=mode.title(),
+                variable=self.awb_mode_var,
+                enabled=self.cam.is_connected
+            ))
         self.menu_bar.items = [
             MenuCascade(label="File", items=[
                 MenuCommand(label="Connect", underline=0,
@@ -105,7 +117,9 @@ class RemotePiCamGUI(MainWindow):
                 MenuSeparator(),
                 MenuCommand(label="Set resolution", underline=4,
                             enabled=self.cam.is_connected,
-                            command=self.set_resolution)
+                            command=self.set_resolution),
+                MenuCascade(label="Set auto-white balance mode", underline=4,
+                            items=available_awb_modes)
             ]),
         ]
 
@@ -129,7 +143,8 @@ class RemotePiCamGUI(MainWindow):
         self.new_res_combobox.value = f"{self.cam.settings['resolution'][0]}" \
                                       f"x{self.cam.settings['resolution'][1]}"
         self.new_res_combobox.read_only = True
-        self.new_res_combobox.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
+        self.new_res_combobox.grid(row=0, column=1, padx=1, pady=1,
+                                   sticky=tk.NW)
         set_res_btn = Button(self.res_window, text="Apply",
                              command=self.apply_resolution)
         set_res_btn.grid(row=1, column=0, padx=1, pady=1, sticky=tk.NW + tk.E)
@@ -180,6 +195,31 @@ class RemotePiCamGUI(MainWindow):
             self.status_label.text = "Paused."
         else:
             self.status_label.text = "Resume."
+
+    def update_awb_status(self, *args) -> None:
+        """
+        Update the status bar when we set the auto white balance of the stream.
+
+        :return: None.
+        """
+        try:
+            self.cam.settings["awb_mode"]["selected"] = self.awb_mode_var.get()
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream auto white balance!",
+                              detail=f"Exception: {e}")
+            self.status_label.text = f"Failed to set auto white balance to " \
+                                     f"\"{self.awb_mode_var.get()}\"!"
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set auto white balance!",
+                             detail=f"New value: "
+                                    f"{self.awb_mode_var.get()}")
+            self.status_label.text = f"Auto white balance set to " \
+                                     f"\"{self.awb_mode_var.get()}\"!"
 
     def take_photo(self) -> None:
         """
