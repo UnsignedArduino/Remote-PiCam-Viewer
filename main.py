@@ -1,13 +1,16 @@
 import logging
 import queue
 import tkinter as tk
+from pathlib import Path
 from queue import Queue
 from threading import Thread
 
 from PIL import ImageTk, Image
-from TkZero.Button import Button
-from TkZero.Dialog import CustomDialog
 from TkZero import Dialog
+from TkZero.Button import Button
+from TkZero.Combobox import Combobox
+from TkZero.Dialog import CustomDialog
+from TkZero.Frame import Frame
 from TkZero.Label import Label, DisplayModes
 from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
@@ -98,9 +101,74 @@ class RemotePiCamGUI(MainWindow):
                 MenuSeparator(),
                 MenuCommand(label="Take photo", underline=0,
                             enabled=self.curr_img is not None,
-                            command=self.take_photo)
+                            command=self.take_photo),
+                MenuSeparator(),
+                MenuCommand(label="Set resolution", underline=4,
+                            enabled=self.cam.is_connected,
+                            command=self.set_resolution)
             ]),
         ]
+
+    def set_resolution(self) -> None:
+        """
+        Set the resolution of the stream.
+
+        :return: None.
+        """
+        self.res_window = CustomDialog(self)
+        self.res_window.title = "Set the stream resolution"
+        self.res_window.resizable(False, False)
+        new_res_frame = Frame(self.res_window)
+        new_res_frame.grid(row=0, column=0, columnspan=2)
+        new_res_lbl = Label(new_res_frame, text="New resolution: ")
+        new_res_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        res_list_path = Path.cwd() / "resolutions.txt"
+        resolutions = res_list_path.read_text().split("\n")
+        self.new_res_combobox = Combobox(new_res_frame, values=resolutions,
+                                         width=30)
+        self.new_res_combobox.value = f"{self.cam.settings['resolution'][0]}" \
+                                      f"x{self.cam.settings['resolution'][1]}"
+        self.new_res_combobox.read_only = True
+        self.new_res_combobox.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
+        set_res_btn = Button(self.res_window, text="Apply",
+                             command=self.apply_resolution)
+        set_res_btn.grid(row=1, column=0, padx=1, pady=1, sticky=tk.NW + tk.E)
+        close_btn = Button(self.res_window, text="Close",
+                           command=self.res_window.close)
+        close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.res_window.lift()
+        self.res_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.res_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.res_window.size.height / 2))
+        )
+        self.res_window.grab_focus()
+        self.res_window.grab_set()
+        self.res_window.wait_till_destroyed()
+
+    def apply_resolution(self) -> None:
+        """
+        Set the resolution of the PiCam and update it.
+
+        :return: None.
+        """
+        try:
+            resolution = tuple([int(p) for p in
+                                self.new_res_combobox.value.split("x")])
+            self.cam.settings["resolution"] = resolution
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream resolution!",
+                              detail=f"Exception: {e}")
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set stream resolution!",
+                             detail=f"New resolution: "
+                                    f"{self.new_res_combobox.value}")
 
     def update_paused_status(self, *args) -> None:
         """
@@ -158,8 +226,8 @@ class RemotePiCamGUI(MainWindow):
             y=round(self.position.y + (self.size.height / 2) -
                     (self.photo_window.size.height / 2))
         )
-        self.photo_window.grab_set()
         self.photo_window.grab_focus()
+        self.photo_window.grab_set()
         self.photo_window.wait_till_destroyed()
 
     def save_photo_taken(self) -> None:
@@ -230,6 +298,7 @@ class RemotePiCamGUI(MainWindow):
                     (self.conn_window.size.height / 2))
         )
         self.conn_window.grab_focus()
+        self.conn_window.grab_set()
         self.conn_window.wait_till_destroyed()
 
     def spawn_connect_thread(self) -> None:

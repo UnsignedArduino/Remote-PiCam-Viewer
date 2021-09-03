@@ -33,6 +33,9 @@ class RemotePiCam:
         self._server_socket = None
         self._connection = None
         self._connected = False
+        self.settings = {
+            "resolution": (720, 480)
+        }
 
     def _get_ip_addr(self) -> str:
         """
@@ -103,6 +106,16 @@ class RemotePiCam:
                 self._server_socket.close()
                 self._connected = False
         return None
+
+    def update_settings(self) -> bool:
+        """
+        Update the settings.
+
+        :return: A bool on whether the settings were set or not.
+        """
+        result = nw0.send_message_to(self._cam_address, self.settings)
+        self.settings = result[1]
+        return result[0]
 
     def disconnect(self) -> None:
         """
