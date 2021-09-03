@@ -125,9 +125,83 @@ class RemotePiCamGUI(MainWindow):
                             items=available_awb_modes),
                 MenuCommand(label="Set brightness", underline=4,
                             enabled=self.cam.is_connected,
-                            command=self.set_brightness)
+                            command=self.set_brightness),
+                MenuCommand(label="Set contrast", underline=4,
+                            enabled=self.cam.is_connected,
+                            command=self.set_contrast)
             ]),
         ]
+
+    def set_contrast(self) -> None:
+        """
+        Set the contrast of the stream.
+
+        :return: None.
+        """
+        self.contrast_window = CustomDialog(self)
+        self.contrast_window.title = "Set the stream contrast"
+        self.contrast_window.resizable(False, False)
+        for i in range(2):
+            self.contrast_window.columnconfigure(i, weight=1)
+            self.contrast_window.rowconfigure(i, weight=1)
+        new_contrast_frame = Frame(self.contrast_window)
+        new_contrast_frame.grid(row=0, column=0, columnspan=2,
+                                sticky=tk.W + tk.E)
+        new_contrast_lbl = Label(new_contrast_frame, text="New contrast: ")
+        new_contrast_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        curr_contrast_lbl = Label(new_contrast_frame, text="0%")
+        curr_contrast_lbl.grid(row=0, column=2, padx=1, pady=1, sticky=tk.NE)
+
+        def update_curr_contrast_lbl(new_val):
+            curr_contrast_lbl.text = f"{round(new_val)}%"
+
+        self.new_contrast_scale = Scale(new_contrast_frame, length=200,
+                                        minimum=-100.0, maximum=100.0,
+                                        command=update_curr_contrast_lbl)
+        self.new_contrast_scale.value = -100
+        self.new_contrast_scale.grid(row=0, column=1, padx=1, pady=1,
+                                     sticky=tk.NW + tk.E)
+        set_contrast_btn = Button(self.contrast_window, text="Apply",
+                                  command=self.apply_contrast)
+        set_contrast_btn.grid(row=1, column=0, padx=1, pady=1,
+                              sticky=tk.NW + tk.E)
+        close_btn = Button(self.contrast_window, text="Close",
+                           command=self.contrast_window.close)
+        close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.contrast_window.lift()
+        self.contrast_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.contrast_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.contrast_window.size.height / 2))
+        )
+        self.contrast_window.update()
+        self.new_contrast_scale.value = 0
+        self.contrast_window.grab_set()
+        self.contrast_window.grab_focus()
+        self.contrast_window.wait_till_destroyed()
+
+    def apply_contrast(self) -> None:
+        """
+        Set the contrast of the PiCam and update it.
+
+        :return: None.
+        """
+        try:
+            contrast = int(self.new_contrast_scale.value)
+            self.cam.settings["contrast"]["value"] = contrast
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream contrast!",
+                              detail=f"Exception: {e}")
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set stream contrast!",
+                             detail=f"New contrast: "
+                                    f"{contrast}%")
 
     def set_brightness(self) -> None:
         """
@@ -174,8 +248,8 @@ class RemotePiCamGUI(MainWindow):
         )
         self.bright_window.update()
         self.new_bright_scale.value = 50
-        self.bright_window.grab_focus()
         self.bright_window.grab_set()
+        self.bright_window.grab_focus()
         self.bright_window.wait_till_destroyed()
 
     def apply_brightness(self) -> None:
@@ -235,8 +309,8 @@ class RemotePiCamGUI(MainWindow):
             y=round(self.position.y + (self.size.height / 2) -
                     (self.res_window.size.height / 2))
         )
-        self.res_window.grab_focus()
         self.res_window.grab_set()
+        self.res_window.grab_focus()
         self.res_window.wait_till_destroyed()
 
     def apply_resolution(self) -> None:
@@ -343,8 +417,8 @@ class RemotePiCamGUI(MainWindow):
             y=round(self.position.y + (self.size.height / 2) -
                     (self.photo_window.size.height / 2))
         )
-        self.photo_window.grab_focus()
         self.photo_window.grab_set()
+        self.photo_window.grab_focus()
         self.photo_window.wait_till_destroyed()
 
     def save_photo_taken(self) -> None:
@@ -414,8 +488,8 @@ class RemotePiCamGUI(MainWindow):
             y=round(self.position.y + (self.size.height / 2) -
                     (self.conn_window.size.height / 2))
         )
-        self.conn_window.grab_focus()
         self.conn_window.grab_set()
+        self.conn_window.grab_focus()
         self.conn_window.wait_till_destroyed()
 
     def spawn_connect_thread(self) -> None:
