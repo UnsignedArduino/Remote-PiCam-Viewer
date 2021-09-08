@@ -371,12 +371,10 @@ class RemotePiCamGUI(MainWindow):
         new_res_frame.grid(row=0, column=0, columnspan=2)
         new_res_lbl = Label(new_res_frame, text="New resolution: ")
         new_res_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
-        res_list_path = Path.cwd() / "resolutions.txt"
-        resolutions = res_list_path.read_text().split("\n")
+        resolutions = self.cam.settings["resolution"]["available"]
         self.new_res_combobox = Combobox(new_res_frame, values=resolutions,
                                          width=30)
-        self.new_res_combobox.value = f"{self.cam.settings['resolution'][0]}" \
-                                      f"x{self.cam.settings['resolution'][1]}"
+        self.new_res_combobox.value = resolutions[0]
         self.new_res_combobox.read_only = True
         self.new_res_combobox.grid(row=0, column=1, padx=1, pady=1,
                                    sticky=tk.NW)
@@ -406,7 +404,7 @@ class RemotePiCamGUI(MainWindow):
         try:
             resolution = tuple([int(p) for p in
                                 self.new_res_combobox.value.split("x")])
-            self.cam.settings["resolution"] = resolution
+            self.cam.settings["resolution"]["selected"] = resolution
             if not self.cam.update_settings():
                 raise RuntimeError("Failed to update settings!")
         except Exception as e:
