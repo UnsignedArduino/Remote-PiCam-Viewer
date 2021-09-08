@@ -34,8 +34,6 @@ class RemotePiCamGUI(MainWindow):
         self.stop_try = False
         self.image_queue = Queue(maxsize=32)
         self.curr_img = None
-        self.curr_img_len = 0
-        self.frames_last_sec = 0
         self.cam = RemotePiCam(cam_name, port)
         super().__init__()
         self.title = "Remote PiCam"
@@ -623,7 +621,7 @@ class RemotePiCamGUI(MainWindow):
         self.stop_try = False
         logger.debug(f"Attempting to connect to PiCam {cam_name} port {port}")
         self.status_label.text = "Attempting to connect to the PiCam..."
-        while not self.cam.connect(timeout=3):
+        while not self.cam.connect(timeout=1):
             if self.stop_try:
                 logger.warning("Stopped trying to connect.")
                 self.status_label.text = "Canceled attempted connection."
@@ -671,30 +669,6 @@ class RemotePiCamGUI(MainWindow):
             pass
         self.after(50, self.update_image)
 
-    def update_status_with_fps(self) -> None:
-        """
-        Start the FPS display in the status bar.
-
-        :return: None.
-        """
-        if not self.cam.is_connected:
-            return
-        if self.cam.is_connected:
-            self.after(1000, self.update_status_with_fps)
-        if self.stream_paused_var.get():
-            return
-        if self.frames_last_sec == 0:
-            self.status_label.text = f"Stream FPS: 0 (∞ ms per frame) " \
-                                     f"at 0 kB/sec"
-        else:
-            b_sec = self.frames_last_sec * self.curr_img_len
-            kb_sec = round(b_sec / 1024, 2)
-            self.status_label.text = f"Stream FPS: {self.frames_last_sec} " \
-                                     f"({round(1000 / self.frames_last_sec)}" \
-                                     f" ms per frame) " \
-                                     f"at {kb_sec} kB/sec"
-        self.frames_last_sec = 0
-
     def start_update_cam_thread(self) -> None:
         """
         Start the update the camera thread.
@@ -704,7 +678,6 @@ class RemotePiCamGUI(MainWindow):
         logger.debug("Spawning update thread")
         t = Thread(target=self.update_cam, daemon=True)
         t.start()
-        self.update_status_with_fps()
 
     def update_cam(self) -> None:
         """
@@ -715,14 +688,13 @@ class RemotePiCamGUI(MainWindow):
         try:
             while self.cam.is_connected:
                 try:
-                    image, self.curr_img_len = self.cam.get_image()
+                    image, _ = self.cam.get_image()
                 except TypeError:
                     break
                 if self.image_queue.full():
                     self.image_queue.get()
                 if not self.stream_paused_var.get():
                     self.image_queue.put(image)
-                    self.frames_last_sec += 1
         finally:
             self.spawn_disconnect_thread()
 
