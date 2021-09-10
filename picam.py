@@ -86,6 +86,19 @@ class RemotePiCam:
                     "deinterlace2"
                 ]
             },
+            "iso": {
+                "selected": 0,
+                "available": [
+                    0,
+                    100,
+                    200,
+                    320,
+                    400,
+                    500,
+                    640,
+                    800
+                ]
+            },
             "resolution": {
                 "selected": (720, 480),
                 "available": [

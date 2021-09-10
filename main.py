@@ -75,6 +75,8 @@ class RemotePiCamGUI(MainWindow):
         self.awb_mode_var.trace_add("write", self.update_awb_status)
         self.effect_var = tk.StringVar(self, value="none")
         self.effect_var.trace_add("write", self.update_effect_status)
+        self.iso_var = tk.IntVar(self, value=0)
+        self.iso_var.trace_add("write", self.update_iso_status)
         self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
         self.remake_menu()
 
@@ -102,6 +104,14 @@ class RemotePiCamGUI(MainWindow):
                 value=effect,
                 label=effect.title(),
                 variable=self.effect_var,
+                enabled=self.cam.is_connected
+            ))
+        available_iso = []
+        for iso in self.cam.settings["iso"]["available"]:
+            available_iso.append(MenuRadiobutton(
+                value=iso,
+                label="Auto" if iso == 0 else str(iso),
+                variable=self.iso_var,
                 enabled=self.cam.is_connected
             ))
         self.menu_bar.items = [
@@ -136,6 +146,8 @@ class RemotePiCamGUI(MainWindow):
                             command=self.set_contrast),
                 MenuCascade(label="Set image effect mode", underline=4,
                             items=available_effects),
+                MenuCascade(label="Set ISO", underline=6,
+                            items=available_iso),
                 MenuCommand(label="Set resolution", underline=4,
                             enabled=self.cam.is_connected,
                             command=self.set_resolution),
@@ -428,6 +440,32 @@ class RemotePiCamGUI(MainWindow):
             self.status_label.text = "Paused."
         else:
             self.status_label.text = "Resume."
+
+    def update_iso_status(self, *args) -> None:
+        """
+        Update the status bar when we set the ISO of the stream.
+
+        :return: None.
+        """
+        try:
+            self.cam.settings["iso"]["selected"] = self.iso_var.get()
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "stream ISO!",
+                              detail=f"Exception: {e}")
+            self.status_label.text = f"Failed to set ISO to " \
+                                     f"\"{self.iso_var.get()}\"!"
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set ISO!",
+                             detail=f"New value: "
+                                    f"{self.iso_var.get()}")
+            self.status_label.text = f"ISO set to " \
+                                     f"\"{self.iso_var.get()}\"!"
+
 
     def update_effect_status(self, *args) -> None:
         """
