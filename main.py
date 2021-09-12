@@ -16,8 +16,8 @@ from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
     MenuCheckbutton, MenuRadiobutton
 from TkZero.Progressbar import Progressbar, ProgressModes
-from TkZero.Vector import Position
 from TkZero.Scale import Scale
+from TkZero.Vector import Position
 
 from create_logger import create_logger
 from picam import RemotePiCam
@@ -38,6 +38,16 @@ class RemotePiCamGUI(MainWindow):
         super().__init__()
         self.title = "Remote PiCam"
         self.resizable(False, False)
+        theme_path = Path.cwd() / "sun-valley.tcl"
+        self.has_theme = theme_path.exists()
+        if self.has_theme:
+            logger.info(f"Importing theme file {theme_path}")
+            self.tk.call("source", str(theme_path.expanduser().resolve()))
+            self.tk.call("set_theme", "light")
+        else:
+            logger.warning(f"{theme_path} does not exist, unable to set "
+                           f"theme!")
+
         self.create_gui()
         self.create_menu()
         self.on_close = self.close_window
@@ -77,8 +87,24 @@ class RemotePiCamGUI(MainWindow):
         self.effect_var.trace_add("write", self.update_effect_status)
         self.iso_var = tk.IntVar(self, value=0)
         self.iso_var.trace_add("write", self.update_iso_status)
+        self.dark_mode_var = tk.BooleanVar(self, value=False)
+        self.dark_mode_var.trace_add("write", self.toggle_theme)
         self.menu_bar = Menu(self, is_menubar=True, command=self.remake_menu)
         self.remake_menu()
+
+    def toggle_theme(self, *args) -> None:
+        """
+        Toggle the theme between light and dark mode.
+
+        :return: None.
+        """
+        if self.has_theme:
+            if not self.dark_mode_var.get():
+                logger.debug("Switching to light mode")
+                self.tk.call("set_theme", "light")
+            else:
+                logger.debug("Switching to dark mode")
+                self.tk.call("set_theme", "dark")
 
     def remake_menu(self) -> None:
         """
@@ -158,9 +184,22 @@ class RemotePiCamGUI(MainWindow):
             MenuCascade(label="Control", items=[
                 MenuCommand(label="Open pan-tilt control panel",
                             underline=14,
-                            enabled=self.cam.is_connected)
+                            enabled=self.cam.is_connected,
+                            command=self.open_pan_tilt_control_panel)
+            ]),
+            MenuCascade(label="View", items=[
+                MenuCheckbutton(label="Dark mode",
+                                variable=self.dark_mode_var,
+                                enabled=self.has_theme)
             ])
         ]
+
+    def open_pan_tilt_control_panel(self) -> None:
+        """
+        Open the pan-tilt control panel.
+
+        :return: None.
+        """
 
     def set_saturation(self) -> None:
         """
@@ -387,7 +426,7 @@ class RemotePiCamGUI(MainWindow):
         new_res_frame = Frame(self.res_window)
         new_res_frame.grid(row=0, column=0, columnspan=2)
         new_res_lbl = Label(new_res_frame, text="New resolution: ")
-        new_res_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        new_res_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.W)
         resolutions = self.cam.settings["resolution"]["available"]
         self.new_res_combobox = Combobox(new_res_frame, values=resolutions,
                                          width=30)
