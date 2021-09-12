@@ -155,6 +155,11 @@ class RemotePiCamGUI(MainWindow):
                             enabled=self.cam.is_connected,
                             command=self.set_saturation),
             ]),
+            MenuCascade(label="Control", items=[
+                MenuCommand(label="Open pan-tilt control panel",
+                            underline=14,
+                            enabled=self.cam.is_connected)
+            ])
         ]
 
     def set_saturation(self) -> None:

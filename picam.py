@@ -195,6 +195,18 @@ class RemotePiCam:
                 "max": 100,
                 "value": 0
             },
+            "servos": {
+                "pan": {
+                    "min": 0,
+                    "max": 180,
+                    "value": 90
+                },
+                "tilt": {
+                    "min": 0,
+                    "max": 60,
+                    "value": 30
+                }
+            }
         }
 
     def _get_ip_addr(self) -> str:
