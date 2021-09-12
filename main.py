@@ -16,7 +16,7 @@ from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
     MenuCheckbutton, MenuRadiobutton
 from TkZero.Progressbar import Progressbar, ProgressModes
-from TkZero.Scale import Scale
+from TkZero.Scale import Scale, OrientModes
 from TkZero.Vector import Position
 
 from create_logger import create_logger
@@ -200,6 +200,93 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         logger.debug("Opening pan-tilt control panel")
+        self.pan_tilt_window = CustomDialog(self)
+        self.pan_tilt_window.title = "Pan-tilt control panel"
+        self.pan_tilt_window.resizable(False, False)
+        for i in range(3):
+            if i < 2:
+                self.pan_tilt_window.columnconfigure(i, weight=1)
+            self.pan_tilt_window.rowconfigure(i, weight=1)
+        new_pan_tilt = Frame(self.pan_tilt_window)
+        new_pan_tilt.grid(row=0, column=0, columnspan=2,
+                          sticky=tk.W + tk.E)
+        new_pan = Frame(new_pan_tilt)
+        new_pan.grid(row=0, column=0, padx=(0, 10))
+        pan_lbl = Label(new_pan, text="Pan: ")
+        pan_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.NW)
+        new_pan_lbl = Label(new_pan, text="0°")
+        new_pan_lbl.grid(row=0, column=2, padx=1, pady=1, sticky=tk.NW)
+
+        def update_new_pan_lbl(new_val):
+            new_pan_lbl.text = f"{round(new_val)}°"
+
+        self.new_pan_scale = Scale(
+            new_pan, length=100,
+            minimum=float(self.cam.settings["servos"]["pan"]["min"]),
+            maximum=float(self.cam.settings["servos"]["pan"]["max"]),
+            command=update_new_pan_lbl
+        )
+        self.new_pan_scale.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
+        self.new_pan_scale.value = float(self.cam.settings["servos"]["pan"]["max"])
+        new_tilt = Frame(new_pan_tilt)
+        new_tilt.grid(row=0, column=1, padx=(10, 0))
+        tilt_lbl = Label(new_tilt, text="Tilt: ")
+        tilt_lbl.grid(row=0, column=0, padx=1, pady=1, sticky=tk.W)
+        new_tilt_lbl = Label(new_tilt, text="0°")
+        new_tilt_lbl.grid(row=0, column=2, padx=1, pady=1, sticky=tk.W)
+
+        def update_new_tilt_lbl(new_val):
+            new_tilt_lbl.text = f"{round(new_val)}°"
+
+        self.new_tilt_scale = Scale(
+            new_tilt, orientation=OrientModes.Vertical, length=50,
+            minimum=float(self.cam.settings["servos"]["tilt"]["min"]),
+            maximum=float(self.cam.settings["servos"]["tilt"]["max"]),
+            command=update_new_tilt_lbl
+        )
+        self.new_tilt_scale.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
+        self.new_tilt_scale.value = float(self.cam.settings["servos"]["tilt"]["max"])
+        set_pan_tilt_btn = Button(self.pan_tilt_window, text="Apply",
+                                  command=self.apply_pan_tilt)
+        set_pan_tilt_btn.grid(row=1, column=0, padx=1, pady=1,
+                              sticky=tk.NW + tk.E)
+        close_btn = Button(self.pan_tilt_window, text="Close",
+                           command=self.pan_tilt_window.close)
+        close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.pan_tilt_window.lift()
+        self.pan_tilt_window.position = Position(
+            x=round(self.position.x + (self.size.width / 2) -
+                    (self.pan_tilt_window.size.width / 2)),
+            y=round(self.position.y + (self.size.height / 2) -
+                    (self.pan_tilt_window.size.height / 2))
+        )
+        self.pan_tilt_window.update()
+        self.new_pan_scale.value = float(self.cam.settings["servos"]["pan"]["value"])
+        self.pan_tilt_window.grab_set()
+        self.pan_tilt_window.grab_focus()
+        self.pan_tilt_window.wait_till_destroyed()
+
+    def apply_pan_tilt(self) -> None:
+        """
+        Apply the pan/tilting.
+
+        :return: None.
+        """
+        try:
+            pan = int(self.new_pan_scale.value)
+            tilt = int(self.new_tilt_scale.value)
+            self.cam.settings["servos"]["pan"]["value"] = pan
+            self.cam.settings["servos"]["tilt"]["value"] = tilt
+            if not self.cam.update_settings():
+                raise RuntimeError("Failed to update settings!")
+        except Exception as e:
+            Dialog.show_error(self, title="Remote PiCam: ERROR!",
+                              message="There was an error updating the "
+                                      "camera pan/tilt!",
+                              detail=f"Exception: {e}")
+        else:
+            Dialog.show_info(self, title="Remote PiCam: Success!",
+                             message="Successfully set camera pan/tilt!")
 
     def set_saturation(self) -> None:
         """
@@ -509,7 +596,6 @@ class RemotePiCamGUI(MainWindow):
                                     f"{self.iso_var.get()}")
             self.status_label.text = f"ISO set to " \
                                      f"\"{self.iso_var.get()}\"!"
-
 
     def update_effect_status(self, *args) -> None:
         """
