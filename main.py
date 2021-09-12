@@ -47,7 +47,6 @@ class RemotePiCamGUI(MainWindow):
         else:
             logger.warning(f"{theme_path} does not exist, unable to set "
                            f"theme!")
-
         self.create_gui()
         self.create_menu()
         self.on_close = self.close_window
@@ -200,6 +199,7 @@ class RemotePiCamGUI(MainWindow):
 
         :return: None.
         """
+        logger.debug("Opening pan-tilt control panel")
 
     def set_saturation(self) -> None:
         """
