@@ -213,7 +213,7 @@ class RemotePiCamGUI(MainWindow):
             MenuCommand(label=link,
                         enabled=False),
             MenuSeparator(),
-            MenuCommand(label="Open GitHub repo in browser",
+            MenuCommand(label="Open link in default browser",
                         command=lambda: webbrowser.open(link)),
             MenuCommand(label="Copy link to clipboard",
                         command=lambda: self.copy_to_clipboard(link))
