@@ -1,6 +1,7 @@
 import logging
 import queue
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from queue import Queue
 from threading import Thread
@@ -36,7 +37,7 @@ class RemotePiCamGUI(MainWindow):
         self.curr_img = None
         self.cam = RemotePiCam(cam_name, port)
         super().__init__()
-        self.title = "Remote PiCam"
+        self.title = "Remote PiCam Viewer"
         self.resizable(False, False)
         theme_path = Path.cwd() / "sun-valley.tcl"
         self.has_theme = theme_path.exists()
@@ -190,8 +191,43 @@ class RemotePiCamGUI(MainWindow):
                 MenuCheckbutton(label="Dark mode",
                                 variable=self.dark_mode_var,
                                 enabled=self.has_theme)
+            ]),
+            MenuCascade(label="Help", items=[
+                self.make_menu_link("Remote PiCam Viewer",
+                                    "https://github.com/UnsignedArduino/Remote-PiCam-Viewer"),
+                self.make_menu_link("Remote PiCam",
+                                    "https://github.com/UnsignedArduino/Remote-PiCam")
             ])
         ]
+
+    def make_menu_link(self, label: str, link: str) -> MenuCascade:
+        """
+        Make a MenuCascade that can open a link in the browser or copy it to
+        the clipboard.
+
+        :param label: What to call the MenuCascade.
+        :param link: The actual link.
+        :return: A MenuCascade.
+        """
+        return MenuCascade(label=label, items=[
+            MenuCommand(label=link,
+                        enabled=False),
+            MenuSeparator(),
+            MenuCommand(label="Open GitHub repo in browser",
+                        command=lambda: webbrowser.open(link)),
+            MenuCommand(label="Copy link to clipboard",
+                        command=lambda: self.copy_to_clipboard(link))
+        ])
+
+    def copy_to_clipboard(self, string: str) -> None:
+        """
+        Copy a string to the clipboard.
+
+        :param string: A string to copy to the clipboard.
+        :return: None.
+        """
+        self.clipboard_clear()
+        self.clipboard_append(string)
 
     def open_pan_tilt_control_panel(self) -> None:
         """
