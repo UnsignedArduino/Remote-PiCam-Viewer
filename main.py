@@ -1,3 +1,4 @@
+from json import loads as load_json, dumps as dump_json
 import logging
 import queue
 import tkinter as tk
@@ -25,8 +26,7 @@ from picam import RemotePiCam
 
 logger = create_logger(name=__name__, level=logging.DEBUG)
 
-cam_name = "picam"
-port = 7896
+SETTINGS_FILE = Path.cwd() / "settings.json"
 
 
 class RemotePiCamGUI(MainWindow):
@@ -35,7 +35,10 @@ class RemotePiCamGUI(MainWindow):
         self.stop_try = False
         self.image_queue = Queue(maxsize=32)
         self.curr_img = None
-        self.cam = RemotePiCam(cam_name, port)
+        self.settings = {}
+        self.load_settings()
+        self.cam = RemotePiCam(self.settings["camera"]["name"],
+                               self.settings["camera"]["port"])
         super().__init__()
         self.title = "Remote PiCam Viewer"
         self.resizable(False, False)
@@ -50,9 +53,40 @@ class RemotePiCamGUI(MainWindow):
                            f"theme!")
         self.create_gui()
         self.create_menu()
+        self.dark_mode_var.set(self.settings["gui"]["dark_mode"])
         self.on_close = self.close_window
         self.update_image()
         self.lift()
+
+    def load_settings(self) -> None:
+        """
+        Load the settings from a file.
+
+        :return: None.
+        """
+        logger.info(f"Loading settings from {SETTINGS_FILE}")
+        defaults = {
+            "camera": {
+                "name": "picam",
+                "port": 7896
+            },
+            "gui": {
+                "dark_mode": False
+            }
+        }
+        if not SETTINGS_FILE.exists():
+            logger.warning("Settings file does not exist, creating!")
+            SETTINGS_FILE.write_text(dump_json(defaults, indent=4))
+        self.settings = defaults | load_json(SETTINGS_FILE.read_text())
+
+    def save_settings(self) -> None:
+        """
+        Set the current settings and save it to a file.
+
+        :return: None.
+        """
+        logger.debug(f"Saving new settings to {SETTINGS_FILE}")
+        SETTINGS_FILE.write_text(dump_json(self.settings, indent=4))
 
     def create_gui(self) -> None:
         """
@@ -101,10 +135,13 @@ class RemotePiCamGUI(MainWindow):
         if self.has_theme:
             if not self.dark_mode_var.get():
                 logger.debug("Switching to light mode")
+                self.settings["gui"]["dark_mode"] = False
                 self.tk.call("set_theme", "light")
             else:
                 logger.debug("Switching to dark mode")
+                self.settings["gui"]["dark_mode"] = True
                 self.tk.call("set_theme", "dark")
+            self.save_settings()
 
     def remake_menu(self) -> None:
         """
