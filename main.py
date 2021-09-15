@@ -373,6 +373,8 @@ class RemotePiCamGUI(MainWindow):
         close_btn = Button(self.pan_tilt_window, text="Close",
                            command=self.pan_tilt_window.close)
         close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.pan_tilt_window.bind("<Escape>",
+                                  lambda *args: self.pan_tilt_window.close())
         self.pan_tilt_window.lift()
         self.pan_tilt_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -445,6 +447,9 @@ class RemotePiCamGUI(MainWindow):
         close_btn = Button(self.saturation_window, text="Close",
                            command=self.saturation_window.close)
         close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.saturation_window.bind("<Escape>",
+                                    lambda
+                                        *args: self.saturation_window.close())
         self.saturation_window.lift()
         self.saturation_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -516,6 +521,8 @@ class RemotePiCamGUI(MainWindow):
         close_btn = Button(self.contrast_window, text="Close",
                            command=self.contrast_window.close)
         close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.contrast_window.bind("<Escape>",
+                                  lambda *args: self.contrast_window.close())
         self.contrast_window.lift()
         self.contrast_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -587,6 +594,8 @@ class RemotePiCamGUI(MainWindow):
         close_btn = Button(self.bright_window, text="Close",
                            command=self.bright_window.close)
         close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.bright_window.bind("<Escape>",
+                                lambda *args: self.bright_window.close())
         self.bright_window.lift()
         self.bright_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -648,6 +657,8 @@ class RemotePiCamGUI(MainWindow):
         close_btn = Button(self.res_window, text="Close",
                            command=self.res_window.close)
         close_btn.grid(row=1, column=1, padx=1, pady=1, sticky=tk.NW + tk.E)
+        self.res_window.bind("<Escape>",
+                             lambda *args: self.res_window.close())
         self.res_window.lift()
         self.res_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -806,6 +817,8 @@ class RemotePiCamGUI(MainWindow):
                                 command=self.photo_window.close)
         self.close_btn.grid(row=2, column=2, padx=1, pady=1,
                             sticky=tk.NW + tk.E)
+        self.photo_window.bind("<Escape>",
+                               lambda *args: self.photo_window.close())
         self.photo_window.lift()
         self.photo_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
@@ -877,6 +890,7 @@ class RemotePiCamGUI(MainWindow):
                                  command=self.stop_connecting)
         self.cancel_btn.grid(row=2, column=0, padx=1, pady=1)
         self.conn_window.on_close = self.stop_connecting
+        self.conn_window.bind("<Escape>", lambda *args: self.stop_connecting())
         self.conn_window.lift()
         self.conn_window.position = Position(
             x=round(self.position.x + (self.size.width / 2) -
