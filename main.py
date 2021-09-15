@@ -906,7 +906,7 @@ class RemotePiCamGUI(MainWindow):
         """
         self.connecting = True
         self.stop_try = False
-        logger.debug(f"Attempting to connect to PiCam {cam_name} port {port}")
+        logger.debug(f"Attempting to connect to PiCam...")
         self.status_label.text = "Attempting to connect to the PiCam..."
         while not self.cam.connect(timeout=1):
             if self.stop_try:
