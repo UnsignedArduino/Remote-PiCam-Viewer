@@ -274,7 +274,7 @@ class RemotePiCamGUI(MainWindow):
                         enabled=False),
             MenuSeparator(),
         ]
-        if path.is_file():
+        if path.is_file() or str("." in path.name):
             menu_items += [
                 MenuCommand(label="Open file in default application",
                             underline=0,
