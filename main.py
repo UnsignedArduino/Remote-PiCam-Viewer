@@ -230,6 +230,8 @@ class RemotePiCamGUI(MainWindow):
                                 enabled=self.has_theme)
             ]),
             MenuCascade(label="Help", items=[
+                self.make_menu_path("Open settings file", SETTINGS_FILE),
+                MenuSeparator(),
                 self.make_menu_link("Remote PiCam Viewer",
                                     "https://github.com/UnsignedArduino/Remote-PiCam-Viewer"),
                 self.make_menu_link("Remote PiCam",
@@ -255,6 +257,42 @@ class RemotePiCamGUI(MainWindow):
             MenuCommand(label="Copy link to clipboard",
                         command=lambda: self.copy_to_clipboard(link))
         ])
+
+    def make_menu_path(self, label: str, path: Path) -> MenuCascade:
+        """
+        Make a MenuCascade that can open a path in the default application, (if
+        a file) open in a file explorer, or copy the path to the clipboard.
+
+        :param label: What to call the MenuCascade.
+        :param path: The actual path.
+        :return: A MenuCascade.
+        """
+        menu_items = [
+            MenuCommand(label=str(path),
+                        enabled=False),
+            MenuSeparator(),
+        ]
+        if path.is_file():
+            menu_items += [
+                MenuCommand(label="Open file in default application",
+                            command=lambda: webbrowser.open(str(path)),
+                            enabled=path.exists()),
+                MenuCommand(label="Open containing directory in default "
+                                  "file manager",
+                            command=lambda: webbrowser.open(str(path.parent)),
+                            enabled=path.parent.exists()),
+                MenuCommand(label="Copy file path to clipboard",
+                            command=lambda: self.copy_to_clipboard(str(path)))
+            ]
+        else:
+            menu_items += [
+                MenuCommand(label="Open directory in default file manager",
+                            command=lambda: webbrowser.open(str(path)),
+                            enabled=path.exists()),
+                MenuCommand(label="Copy directory path to clipboard",
+                            command=lambda: self.copy_to_clipboard(str(path)))
+            ]
+        return MenuCascade(label=label, items=menu_items)
 
     def copy_to_clipboard(self, string: str) -> None:
         """
@@ -300,7 +338,8 @@ class RemotePiCamGUI(MainWindow):
             command=update_new_pan_lbl
         )
         self.new_pan_scale.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
-        self.new_pan_scale.value = float(self.cam.settings["servos"]["pan"]["max"])
+        self.new_pan_scale.value = float(
+            self.cam.settings["servos"]["pan"]["max"])
         new_tilt = Frame(new_pan_tilt)
         new_tilt.grid(row=0, column=1, padx=(10, 0))
         tilt_lbl = Label(new_tilt, text="Tilt: ")
@@ -318,7 +357,8 @@ class RemotePiCamGUI(MainWindow):
             command=update_new_tilt_lbl
         )
         self.new_tilt_scale.grid(row=0, column=1, padx=1, pady=1, sticky=tk.NW)
-        self.new_tilt_scale.value = float(self.cam.settings["servos"]["tilt"]["max"])
+        self.new_tilt_scale.value = float(
+            self.cam.settings["servos"]["tilt"]["max"])
         set_pan_tilt_btn = Button(self.pan_tilt_window, text="Apply",
                                   command=self.apply_pan_tilt)
         set_pan_tilt_btn.grid(row=1, column=0, padx=1, pady=1,
@@ -334,7 +374,8 @@ class RemotePiCamGUI(MainWindow):
                     (self.pan_tilt_window.size.height / 2))
         )
         self.pan_tilt_window.update()
-        self.new_pan_scale.value = float(self.cam.settings["servos"]["pan"]["value"])
+        self.new_pan_scale.value = float(
+            self.cam.settings["servos"]["pan"]["value"])
         self.pan_tilt_window.grab_set()
         self.pan_tilt_window.grab_focus()
         self.pan_tilt_window.wait_till_destroyed()
