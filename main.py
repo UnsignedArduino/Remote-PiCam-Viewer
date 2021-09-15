@@ -26,7 +26,7 @@ from picam import RemotePiCam
 
 logger = create_logger(name=__name__, level=logging.DEBUG)
 
-SETTINGS_FILE = Path.cwd() / "settings.json"
+SETTINGS_PATH = Path.cwd() / "settings.json"
 
 
 class RemotePiCamGUI(MainWindow):
@@ -64,7 +64,7 @@ class RemotePiCamGUI(MainWindow):
 
         :return: None.
         """
-        logger.info(f"Loading settings from {SETTINGS_FILE}")
+        logger.info(f"Loading settings from {SETTINGS_PATH}")
         defaults = {
             "camera": {
                 "name": "picam",
@@ -74,10 +74,10 @@ class RemotePiCamGUI(MainWindow):
                 "dark_mode": False
             }
         }
-        if not SETTINGS_FILE.exists():
+        if not SETTINGS_PATH.exists():
             logger.warning("Settings file does not exist, creating!")
-            SETTINGS_FILE.write_text(dump_json(defaults, indent=4))
-        self.settings = defaults | load_json(SETTINGS_FILE.read_text())
+            SETTINGS_PATH.write_text(dump_json(defaults, indent=4))
+        self.settings = defaults | load_json(SETTINGS_PATH.read_text())
 
     def save_settings(self) -> None:
         """
@@ -85,8 +85,8 @@ class RemotePiCamGUI(MainWindow):
 
         :return: None.
         """
-        logger.debug(f"Saving new settings to {SETTINGS_FILE}")
-        SETTINGS_FILE.write_text(dump_json(self.settings, indent=4))
+        logger.debug(f"Saving new settings to {SETTINGS_PATH}")
+        SETTINGS_PATH.write_text(dump_json(self.settings, indent=4))
 
     def create_gui(self) -> None:
         """
@@ -230,7 +230,7 @@ class RemotePiCamGUI(MainWindow):
                                 enabled=self.has_theme)
             ]),
             MenuCascade(label="Help", items=[
-                self.make_menu_path("Open settings file", SETTINGS_FILE),
+                self.make_menu_path("Open settings file", SETTINGS_PATH),
                 MenuSeparator(),
                 self.make_menu_link("Remote PiCam Viewer",
                                     "https://github.com/UnsignedArduino/Remote-PiCam-Viewer"),
@@ -253,8 +253,10 @@ class RemotePiCamGUI(MainWindow):
                         enabled=False),
             MenuSeparator(),
             MenuCommand(label="Open link in default browser",
+                        underline=0,
                         command=lambda: webbrowser.open(link)),
             MenuCommand(label="Copy link to clipboard",
+                        underline=0,
                         command=lambda: self.copy_to_clipboard(link))
         ])
 
@@ -275,21 +277,26 @@ class RemotePiCamGUI(MainWindow):
         if path.is_file():
             menu_items += [
                 MenuCommand(label="Open file in default application",
+                            underline=0,
                             command=lambda: webbrowser.open(str(path)),
                             enabled=path.exists()),
                 MenuCommand(label="Open containing directory in default "
                                   "file manager",
+                            underline=16,
                             command=lambda: webbrowser.open(str(path.parent)),
                             enabled=path.parent.exists()),
                 MenuCommand(label="Copy file path to clipboard",
+                            underline=0,
                             command=lambda: self.copy_to_clipboard(str(path)))
             ]
         else:
             menu_items += [
                 MenuCommand(label="Open directory in default file manager",
+                            underline=0,
                             command=lambda: webbrowser.open(str(path)),
                             enabled=path.exists()),
                 MenuCommand(label="Copy directory path to clipboard",
+                            underline=0,
                             command=lambda: self.copy_to_clipboard(str(path)))
             ]
         return MenuCascade(label=label, items=menu_items)
