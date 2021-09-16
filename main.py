@@ -1,11 +1,13 @@
-from json import loads as load_json, dumps as dump_json
 import logging
 import queue
+from TkZero.Platform import on_aqua
 import tkinter as tk
 import webbrowser
+from json import loads as load_json, dumps as dump_json
 from pathlib import Path
 from queue import Queue
 from threading import Thread
+from typing import Callable
 
 from PIL import ImageTk, Image
 from TkZero import Dialog
@@ -53,6 +55,7 @@ class RemotePiCamGUI(MainWindow):
                            f"theme!")
         self.create_gui()
         self.create_menu()
+        self.make_key_binds()
         self.dark_mode_var.set(self.settings["gui"]["dark_mode"])
         self.on_close = self.close_window
         self.update_image()
@@ -180,14 +183,19 @@ class RemotePiCamGUI(MainWindow):
         self.menu_bar.items = [
             MenuCascade(label="File", items=[
                 MenuCommand(label="Connect", underline=0,
+                            accelerator="Command-C" if on_aqua(self)
+                            else "Control+C",
                             enabled=not self.cam.is_connected and
                                     not self.connecting,
                             command=self.start_connecting_window),
                 MenuCommand(label="Disconnect", underline=0,
+                            accelerator="Command-D" if on_aqua(self)
+                            else "Control+D",
                             enabled=self.cam.is_connected,
                             command=self.spawn_disconnect_thread),
                 MenuSeparator(),
                 MenuCommand(label="Exit", underline=0,
+                            accelerator="Escape",
                             command=self.close_window)
             ]),
             MenuCascade(label="Stream", items=[
@@ -311,6 +319,39 @@ class RemotePiCamGUI(MainWindow):
         """
         self.clipboard_clear()
         self.clipboard_append(string)
+
+    def make_key_bind(self, key_combo: str, condition: Callable,
+                      func: Callable) -> None:
+        """
+        Make a key bind and bind it to the function func if the function
+        condtion returns True.
+
+        :param key_combo: A Tkinter event.
+        :param condition: A function that returns a bool on whether the
+         key bind is enabled or not.
+        :param func: The function to call when the event occurs and the
+         condition function returns True.
+        :return: None.
+        """
+        logger.debug(f"Binding event {key_combo} to function {func} with "
+                     f"condition {condition}")
+        self.bind(key_combo, lambda *args: func() if condition() else None)
+
+    def make_key_binds(self) -> None:
+        """
+        Make the key binds for the application.
+
+        :return: None.
+        """
+        logger.debug("Making key binds...")
+        self.make_key_bind("<Command-c>" if on_aqua(self) else "<Control-c>",
+                           lambda: not self.cam.is_connected and
+                                   not self.connecting,
+                           self.start_connecting_window)
+        self.make_key_bind("<Command-d>" if on_aqua(self) else "<Control-d>",
+                           lambda: self.cam.is_connected,
+                           self.spawn_disconnect_thread)
+        self.make_key_bind("<Escape>", lambda: True, self.close_from_escape)
 
     def open_pan_tilt_control_panel(self) -> None:
         """
@@ -860,13 +901,32 @@ class RemotePiCamGUI(MainWindow):
                                  message="Successfully saved photo!",
                                  detail=f"Saved to {path}")
 
+    def close_from_escape(self) -> None:
+        """
+        Close the GUI, but show a confirmation message if we are currently
+        connected.
+
+        :return: None
+        """
+        logger.debug("Escape pressed, closing!")
+        if self.cam.is_connected:
+            if Dialog.ask_yes_or_no(self, title="Remote PiCam: Confirm",
+                                    message="Are you sure you want to "
+                                            "disconnect and close the "
+                                            "viewer?"):
+                self.close_window()
+        else:
+            self.close_window()
+
     def close_window(self) -> None:
         """
         Close the GUI.
 
         :return: None.
         """
+        logger.warning("Closing window!")
         if self.cam.is_connected:
+            logger.info("Still connected to camera, disconnecting")
             self.disconnect()
         self.destroy()
 
