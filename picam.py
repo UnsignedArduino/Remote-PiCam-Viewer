@@ -196,6 +196,7 @@ class RemotePiCam:
                 "value": 0
             },
             "servos": {
+                "enable": True,
                 "pan": {
                     "min": 0,
                     "max": 180,

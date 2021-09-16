@@ -221,7 +221,8 @@ class RemotePiCamGUI(MainWindow):
             MenuCascade(label="Control", items=[
                 MenuCommand(label="Open pan-tilt control panel",
                             underline=14,
-                            enabled=self.cam.is_connected,
+                            enabled=self.cam.is_connected and
+                                    self.cam.settings["servos"]["enable"],
                             command=self.open_pan_tilt_control_panel)
             ]),
             MenuCascade(label="View", items=[
