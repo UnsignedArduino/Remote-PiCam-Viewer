@@ -200,10 +200,14 @@ class RemotePiCamGUI(MainWindow):
             ]),
             MenuCascade(label="Stream", items=[
                 MenuCheckbutton(label="Stream paused", underline=7,
+                                accelerator="Command-P" if on_aqua(self)
+                                else "Control+P",
                                 enabled=self.cam.is_connected,
                                 variable=self.stream_paused_var),
                 MenuSeparator(),
                 MenuCommand(label="Take photo", underline=0,
+                            accelerator="Command-T" if on_aqua(self)
+                            else "Control+T",
                             enabled=self.curr_img is not None,
                             command=self.take_photo),
                 MenuSeparator(),
@@ -352,6 +356,14 @@ class RemotePiCamGUI(MainWindow):
                            lambda: self.cam.is_connected,
                            self.spawn_disconnect_thread)
         self.make_key_bind("<Escape>", lambda: True, self.close_from_escape)
+        self.make_key_bind("<Command-p>" if on_aqua(self) else "<Control-p>",
+                           lambda: self.cam.is_connected,
+                           lambda: self.stream_paused_var.set(
+                               not self.stream_paused_var.get()
+                           ))
+        self.make_key_bind("<Command-t>" if on_aqua(self) else "<Control-t>",
+                           lambda: self.curr_img is not None,
+                           self.take_photo)
 
     def open_pan_tilt_control_panel(self) -> None:
         """
@@ -849,6 +861,7 @@ class RemotePiCamGUI(MainWindow):
                                      command=self.photo_taken.show)
         self.show_photo_btn.grid(row=2, column=0, padx=1, pady=1,
                                  sticky=tk.NW + tk.E)
+        self.show_photo_btn.focus_set()
         self.save_photo_btn = Button(self.photo_window,
                                      text="Save to file",
                                      command=self.save_photo_taken)
