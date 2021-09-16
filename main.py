@@ -231,8 +231,9 @@ class RemotePiCamGUI(MainWindow):
                             command=self.set_saturation),
             ]),
             MenuCascade(label="Control", items=[
-                MenuCommand(label="Open pan-tilt control panel",
-                            underline=14,
+                MenuCommand(label="Open pan-tilt control panel", underline=14,
+                            accelerator="Command-S" if on_aqua(self)
+                            else "Control+S",
                             enabled=self.cam.is_connected and
                                     self.cam.settings["servos"]["enable"],
                             command=self.open_pan_tilt_control_panel)
@@ -364,6 +365,10 @@ class RemotePiCamGUI(MainWindow):
         self.make_key_bind("<Command-t>" if on_aqua(self) else "<Control-t>",
                            lambda: self.curr_img is not None,
                            self.take_photo)
+        self.make_key_bind("<Command-s>" if on_aqua(self) else "<Control-s>",
+                           lambda: self.cam.is_connected and
+                                   self.cam.settings["servos"]["enable"],
+                           self.open_pan_tilt_control_panel)
 
     def open_pan_tilt_control_panel(self) -> None:
         """
