@@ -1,6 +1,8 @@
 # Remote-PiCam-Viewer
 View and control a Raspberry Pi Camera mounted on a Waveshare pan/tilt HAT!
 
+![A picture of the Remote PiCam Viewer in action viewing a potted plant.](assets/README/1/1.png "Figure 1.1")
+
 ## Installation
 
 1. Make sure you have [Python 3.9](https://www.python.org/downloads/)
