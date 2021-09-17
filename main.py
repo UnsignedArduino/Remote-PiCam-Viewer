@@ -244,6 +244,9 @@ class RemotePiCamGUI(MainWindow):
                                 enabled=self.has_theme)
             ]),
             MenuCascade(label="Help", items=[
+                self.make_menu_md("Open README",
+                                  Path.cwd() / "README.md",
+                                  "https://github.com/UnsignedArduino/Remote-PiCam-Viewer/blob/main/README.md"),
                 self.make_menu_path("Open settings file", SETTINGS_PATH),
                 MenuSeparator(),
                 self.make_menu_link("Remote PiCam Viewer",
@@ -313,6 +316,46 @@ class RemotePiCamGUI(MainWindow):
                             underline=0,
                             command=lambda: self.copy_to_clipboard(str(path)))
             ]
+        return MenuCascade(label=label, items=menu_items)
+
+    def make_menu_md(self, label: str, path: Path,
+                     link: str) -> MenuCascade:
+        """
+        Make a MenuCascade that can open a markdown file in the default
+        application, copy the path to the clipboard, or open it online.
+
+        :param label: What to call the MenuCascade.
+        :param path: The actual path.
+        :param link: A link to the markdown file online.
+        :return: A MenuCascade.
+        """
+        menu_items = [
+            MenuCommand(label=str(path),
+                        enabled=False),
+            MenuSeparator(),
+            MenuCommand(label="Open markdown file in default markdown reader",
+                        underline=0,
+                        command=lambda: webbrowser.open(str(path)),
+                        enabled=path.exists()),
+            MenuCommand(label="Open containing directory in default "
+                              "file manager",
+                        underline=16,
+                        command=lambda: webbrowser.open(str(path.parent)),
+                        enabled=path.parent.exists()),
+            MenuCommand(label="Copy markdown file path to clipboard",
+                        underline=0,
+                        command=lambda: self.copy_to_clipboard(str(path))),
+            MenuSeparator(),
+            MenuCommand(label=link,
+                        enabled=False),
+            MenuSeparator(),
+            MenuCommand(label="Open markdown file online in default browser",
+                        underline=0,
+                        command=lambda: webbrowser.open(link)),
+            MenuCommand(label="Copy link to markdown file online to clipboard",
+                        underline=0,
+                        command=lambda: self.copy_to_clipboard(link))
+        ]
         return MenuCascade(label=label, items=menu_items)
 
     def copy_to_clipboard(self, string: str) -> None:
