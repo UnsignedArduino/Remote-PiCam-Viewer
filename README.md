@@ -22,7 +22,8 @@ View and control a Raspberry Pi Camera mounted on a Waveshare pan/tilt HAT!
 ## Usage
 
 Run [`main.py`](https://github.com/UnsignedArduino/Remote-PiCam-Viewer/blob/main/main.py)
-to start the program. 
+to start the program. For instructions on how to use the program, view
+the [HELPME.md](HELPME.md) file. 
 
 ## Configuration
 When you first run the script, a `settings.json` file should generate:
