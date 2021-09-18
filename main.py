@@ -244,8 +244,8 @@ class RemotePiCamGUI(MainWindow):
                                 enabled=self.has_theme)
             ]),
             MenuCascade(label="Help", items=[
-                self.make_menu_md("Open README",
-                                  Path.cwd() / "README.md",
+                self.make_menu_help_md("Open README",
+                                       Path.cwd() / "README.md",
                                   "https://github.com/UnsignedArduino/Remote-PiCam-Viewer/blob/main/README.md"),
                 self.make_menu_path("Open settings file", SETTINGS_PATH),
                 MenuSeparator(),
@@ -318,10 +318,10 @@ class RemotePiCamGUI(MainWindow):
             ]
         return MenuCascade(label=label, items=menu_items)
 
-    def make_menu_md(self, label: str, path: Path,
-                     link: str) -> MenuCascade:
+    def make_menu_help_md(self, label: str, path: Path,
+                          link: str) -> MenuCascade:
         """
-        Make a MenuCascade that can open a markdown file in the default
+        Make a MenuCascade that can open a help markdown file in the default
         application, copy the path to the clipboard, or open it online.
 
         :param label: What to call the MenuCascade.
@@ -329,11 +329,16 @@ class RemotePiCamGUI(MainWindow):
         :param link: A link to the markdown file online.
         :return: A MenuCascade.
         """
-        menu_items = [
+        self.make_key_bind("<F1>", lambda: True,
+                           lambda: webbrowser.open(link))
+        self.make_key_bind("<Shift-F1>", path.exists,
+                           lambda: webbrowser.open(str(path)))
+        return MenuCascade(label=label, items=[
             MenuCommand(label=str(path),
                         enabled=False),
             MenuSeparator(),
             MenuCommand(label="Open markdown file in default markdown reader",
+                        accelerator="Shift+F1",
                         command=lambda: webbrowser.open(str(path)),
                         enabled=path.exists()),
             MenuCommand(label="Open containing directory in default "
@@ -347,13 +352,12 @@ class RemotePiCamGUI(MainWindow):
                         enabled=False),
             MenuSeparator(),
             MenuCommand(label="Open markdown file online in default browser",
-                        underline=0,
+                        underline=0, accelerator="F1",
                         command=lambda: webbrowser.open(link)),
             MenuCommand(label="Copy link to markdown file online to clipboard",
                         underline=0,
                         command=lambda: self.copy_to_clipboard(link))
-        ]
-        return MenuCascade(label=label, items=menu_items)
+        ])
 
     def copy_to_clipboard(self, string: str) -> None:
         """
@@ -380,7 +384,8 @@ class RemotePiCamGUI(MainWindow):
         """
         logger.debug(f"Binding event {key_combo} to function {func} with "
                      f"condition {condition}")
-        self.bind(key_combo, lambda *args: func() if condition() else None)
+        self.bind(key_combo, lambda *args: func() if condition() else None,
+                  add=False)
 
     def make_key_binds(self) -> None:
         """
