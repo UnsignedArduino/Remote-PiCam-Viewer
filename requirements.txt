@@ -1,3 +1,3 @@
-TkZero
+git+https://github.com/UnsignedArduino/TkZero
 Pillow
 networkzero
