@@ -52,3 +52,45 @@ name otherwise it will error out.
 
 Please note the photo resolution is determined by the current stream 
 resolution.
+
+## Panning/Tilting
+
+If you have a Waveshare Pan/Tilt hat connected and it's enabled in the 
+PiCam's settings file, (not the PiCam Viewer's settings file) you can go to
+`Control --> Open pan-tilt control panel` and open the pan/tilt window.
+
+![The Remote PiCam Viewer's pan-tilt control panel.](assets/HELPME/1/8.png "Figure 1.8")
+
+The sliders should be self-explanatory. 
+
+> Tip: Instead of dragging to move the slider, you can click on the slider 
+> to move it left or right (or up and down, depending on the slider) by 1 
+> degree. Right-click to set the slider value directly. 
+
+## Dark mode
+
+If the GUI's bright colors aren't your style, you can toggle dark mode in  
+`View --> Dark mode`.
+
+![The Remote PiCam Viewer's pan-tilt control panel open and dark mode enabled.](assets/HELPME/1/9.png "Figure 1.9")
+
+## Keyboard shortcuts
+
+Here is a list of keyboard shortcuts available:
+
+(Note that <kbd>Ctrl</kbd> will usually be <kbd>Cmd</kbd> on macOS unless 
+specified)
+
+Keyboard shortcut                | Action
+---------------------------------|----------------------------------------------------------------
+<kbd>Ctrl</kbd> + <kbd>c</kbd>   | Connect
+<kbd>Ctrl</kbd> + <kbd>d</kbd>   | Disconnect
+<kbd>Escape</kbd>                | Exit (also works on dialogs)
+<kbd>Ctrl</kbd> + <kbd>p</kbd>   | Pause (or resume) the stream
+<kbd>Ctrl</kbd> + <kbd>t</kbd>   | Take a photo of the stream
+<kbd>Ctrl</kbd> + <kbd>s</kbd>   | Open the pan/tilt control panel ("s" stands for "servo")
+<kbd>F1</kbd>                    | Open online help (opens the README file of this repo on GitHub)
+<kbd>F1</kbd> + <kbd>Shift</kbd> | Open the README file in the default Markdown editor
+
+You can also look in the menu and the accelerator will show the correct 
+keyboard shortcut. 
