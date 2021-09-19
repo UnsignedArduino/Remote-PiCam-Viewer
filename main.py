@@ -35,10 +35,10 @@ class RemotePiCamGUI(MainWindow):
     def __init__(self):
         self.connecting = False
         self.stop_try = False
-        self.image_queue = Queue(maxsize=32)
-        self.curr_img = None
         self.settings = {}
         self.load_settings()
+        self.image_queue = Queue(maxsize=self.settings["gui"]["queue"]["size"])
+        self.curr_img = None
         self.cam = RemotePiCam(self.settings["camera"]["name"],
                                self.settings["camera"]["port"])
         super().__init__()
@@ -58,7 +58,7 @@ class RemotePiCamGUI(MainWindow):
         self.make_key_binds()
         self.dark_mode_var.set(self.settings["gui"]["dark_mode"])
         self.on_close = self.close_window
-        self.update_image()
+        self.update_image(self.settings["gui"]["queue"]["check"])
         self.lift()
 
     def load_settings(self) -> None:
@@ -74,7 +74,11 @@ class RemotePiCamGUI(MainWindow):
                 "port": 7896
             },
             "gui": {
-                "dark_mode": False
+                "dark_mode": False,
+                "queue": {
+                    "check": 50,
+                    "size": 32
+                }
             }
         }
         if not SETTINGS_PATH.exists():
@@ -1079,11 +1083,13 @@ class RemotePiCamGUI(MainWindow):
         self.cancel_btn.enabled = False
         self.stop_try = True
 
-    def update_image(self) -> None:
+    def update_image(self, again_in: int) -> None:
         """
         Pull and update the image on the window. You should only call this
         once.
 
+        :param again_in: An int on how many milliseconds to wait before we
+         check the queue for another image.
         :return: None.
         """
         try:
@@ -1092,7 +1098,7 @@ class RemotePiCamGUI(MainWindow):
             self.image_label.image = ImageTk.PhotoImage(image)
         except queue.Empty:
             pass
-        self.after(50, self.update_image)
+        self.after(again_in, lambda: self.update_image(again_in))
 
     def start_update_cam_thread(self) -> None:
         """

@@ -36,7 +36,11 @@ When you first run the script, a `settings.json` file should generate:
         "port": 7896
     },
     "gui": {
-        "dark_mode": true
+        "dark_mode": false,
+        "queue": {
+            "check": 50,
+            "size": 32
+        }
     }
 }
 ```
@@ -46,5 +50,10 @@ the software won't discover it (`name` is not correct) or it will stay
 connecting forever and get stuck. (`port` is not correct)
 
 `gui.dark_mode` sets whether to use dark mode or not. (Thanks 
-[rdbende](https://github.com/rdbende) for the 
+[@rdbende](https://github.com/rdbende) for the 
 [Sun Valley theme](https://github.com/rdbende/Sun-Valley-ttk-theme)!)
+
+`gui.queue.check` is how many milliseconds in between every queue check for an 
+image. `gui.queue.size` is the image buffer size, low values can cause 
+stuttering in bad network conditions, high values will use more memory and
+cause noticeable delay. 
