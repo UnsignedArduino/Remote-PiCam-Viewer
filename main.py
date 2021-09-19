@@ -43,6 +43,7 @@ class RemotePiCamGUI(MainWindow):
         self.image_queue = Queue(maxsize=self.settings["gui"]["queue"]["size"])
         self.curr_img = None
         self.curr_img_size = 0
+        self.curr_img_time = 0
         self.last_frame_reset = 0
         self.frames_this_sec = 0
         self.stream_fps = 0
@@ -463,8 +464,10 @@ class RemotePiCamGUI(MainWindow):
         text = f"Connected: {self.cam.is_connected}\n"
         text += f"Image queue size: {self.image_queue.qsize()} / " \
                 f"{self.settings['gui']['queue']['size']}\n"
-        text += f"Current image size: {round(self.curr_img_size / 1024, 2)} " \
-                f"kb\n"
+        text += f"Current image size: " \
+                f"{round(self.curr_img_size / 1024, 2)} kb\n"
+        text += f"Stream latency: " \
+                f"{round(abs((unix() * 1000) - self.curr_img_time))} ms\n"
         if unix() - self.last_frame_reset > 1:
             self.last_frame_reset = unix()
             self.stream_fps = self.frames_this_sec
@@ -1161,7 +1164,8 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         try:
-            image, self.curr_img_size = self.image_queue.get_nowait()
+            image, self.curr_img_size, self.curr_img_time = \
+                self.image_queue.get_nowait()
             self.curr_img = image
             self.frames_got += 1
             self.frames_this_sec += 1
@@ -1190,13 +1194,13 @@ class RemotePiCamGUI(MainWindow):
             self.frames_got = 0
             while self.cam.is_connected:
                 try:
-                    image, size = self.cam.get_image()
+                    image, size, frame_time = self.cam.get_image()
                 except TypeError:
                     break
                 if self.image_queue.full():
                     self.image_queue.get()
                 if not self.stream_paused_var.get():
-                    self.image_queue.put((image, size))
+                    self.image_queue.put((image, size, frame_time))
         finally:
             self.spawn_disconnect_thread()
 

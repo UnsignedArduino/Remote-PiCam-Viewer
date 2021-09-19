@@ -252,25 +252,29 @@ class RemotePiCam:
             self._connected = True
             return True
 
-    def get_image(self) -> Union[tuple[Image.Image, int], None]:
+    def get_image(self) -> Union[tuple[Image.Image, int, int], None]:
         """
         Get an image from the PiCam.
 
-        :return: A tuple of a PIL.Image and the size, or None if disconnected.
+        :return: A tuple of a PIL.Image, the size, and the frame's unix time in
+         milliseconds, or None if disconnected.
         """
         failed = False
         if not self.is_connected:
             raise ValueError("Not connected")
         try:
-            u32_size = struct.calcsize("<L")
-            img_len = struct.unpack("<L", self._connection.read(u32_size))[0]
+            ull_size = struct.calcsize("<Q")
+            frame_time = struct.unpack("<Q",
+                                       self._connection.read(ull_size))[0]
+            ul_size = struct.calcsize("<L")
+            img_len = struct.unpack("<L", self._connection.read(ul_size))[0]
             if img_len == 0:
                 raise ValueError("No more data is being sent, closing")
             img_stream = BytesIO()
             img_stream.write(self._connection.read(img_len))
             img_stream.seek(0)
             img_pil = Image.open(img_stream)
-            return img_pil, img_len
+            return img_pil, img_len, frame_time
         except Exception:
             failed = True
         finally:
