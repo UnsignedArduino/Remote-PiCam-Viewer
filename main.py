@@ -1,6 +1,5 @@
 import logging
 import queue
-from TkZero.Platform import on_aqua
 import tkinter as tk
 import webbrowser
 from json import loads as load_json, dumps as dump_json
@@ -19,6 +18,7 @@ from TkZero.Label import Label, DisplayModes
 from TkZero.MainWindow import MainWindow
 from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
     MenuCheckbutton, MenuRadiobutton
+from TkZero.Platform import on_aqua
 from TkZero.Progressbar import Progressbar, ProgressModes
 from TkZero.Scale import Scale, OrientModes
 from TkZero.Vector import Position
