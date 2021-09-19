@@ -270,7 +270,7 @@ class RemotePiCam:
             img_stream.write(self._connection.read(img_len))
             img_stream.seek(0)
             img_pil = Image.open(img_stream)
-            return img_pil, img_stream.tell()
+            return img_pil, img_len
         except Exception:
             failed = True
         finally:

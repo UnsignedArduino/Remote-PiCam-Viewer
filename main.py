@@ -1,3 +1,4 @@
+from time import time as unix
 import logging
 import queue
 import tkinter as tk
@@ -21,8 +22,10 @@ from TkZero.Menu import Menu, MenuCascade, MenuCommand, MenuSeparator, \
 from TkZero.Platform import on_aqua
 from TkZero.Progressbar import Progressbar, ProgressModes
 from TkZero.Scale import Scale, OrientModes
+from TkZero.Text import Text, TextWrap
 from TkZero.Vector import Position
-
+from TkZero.Window import Window
+from TkZero.Scrollbar import Scrollbar, OrientModes
 from create_logger import create_logger
 from picam import RemotePiCam
 
@@ -39,6 +42,11 @@ class RemotePiCamGUI(MainWindow):
         self.load_settings()
         self.image_queue = Queue(maxsize=self.settings["gui"]["queue"]["size"])
         self.curr_img = None
+        self.curr_img_size = 0
+        self.last_frame_reset = 0
+        self.frames_this_sec = 0
+        self.stream_fps = 0
+        self.frames_got = 0
         self.cam = RemotePiCam(self.settings["camera"]["name"],
                                self.settings["camera"]["port"])
         super().__init__()
@@ -53,6 +61,8 @@ class RemotePiCamGUI(MainWindow):
         else:
             logger.warning(f"{theme_path} does not exist, unable to set "
                            f"theme!")
+        self.stat_window = self.create_stat_window()
+        self.toggle_stat_window_view(False)
         self.create_gui()
         self.create_menu()
         self.make_key_binds()
@@ -245,7 +255,9 @@ class RemotePiCamGUI(MainWindow):
             MenuCascade(label="View", items=[
                 MenuCheckbutton(label="Dark mode",
                                 variable=self.dark_mode_var,
-                                enabled=self.has_theme)
+                                enabled=self.has_theme),
+                MenuCommand(label="Open stream stats",
+                            command=lambda: self.toggle_stat_window_view(True))
             ]),
             MenuCascade(label="Help", items=[
                 self.make_menu_help_md("Open README",
@@ -418,6 +430,62 @@ class RemotePiCamGUI(MainWindow):
                            lambda: self.cam.is_connected and
                                    self.cam.settings["servos"]["enable"],
                            self.open_pan_tilt_control_panel)
+
+    def create_stat_window(self) -> Window:
+        """
+        Make the stream stats window.
+
+        :return: A TkZero.Window.Window.
+        """
+        window = Window(self)
+        window.title = "Stream stats"
+        window.on_close = lambda: self.toggle_stat_window_view(False)
+        self.debug_text = Text(window, 30, 10, TextWrap.NoWrapping)
+        self.debug_text.grid(row=0, column=0, padx=(1, 0), pady=(1, 0),
+                             sticky=tk.NSEW)
+        self.debug_text.read_only = True
+        x_scroll = Scrollbar(window, widget=self.debug_text)
+        x_scroll.grid(row=0, column=1, padx=(0, 1), pady=1)
+        y_scroll = Scrollbar(window, orientation=OrientModes.Horizontal,
+                             widget=self.debug_text)
+        y_scroll.grid(row=1, column=0, padx=(0, 1), pady=1)
+        window.rowconfigure(0, weight=1)
+        window.columnconfigure(0, weight=1)
+        self.update_stats()
+        return window
+
+    def update_stats(self) -> None:
+        """
+        Start updating the stats. Will automatically reschedule by itself.
+
+        :return: None.
+        """
+        text = f"Connected: {self.cam.is_connected}\n"
+        text += f"Image queue size: {self.image_queue.qsize()} / " \
+                f"{self.settings['gui']['queue']['size']}\n"
+        text += f"Current image size: {round(self.curr_img_size / 1024, 2)} " \
+                f"kb\n"
+        if unix() - self.last_frame_reset > 1:
+            self.last_frame_reset = unix()
+            self.stream_fps = self.frames_this_sec
+            self.frames_this_sec = 0
+        text += f"Stream FPS: {self.stream_fps}\n"
+        text += f"Frames received: {self.frames_got}"
+        self.debug_text.text = text
+        self.after(50, self.update_stats)
+
+    def toggle_stat_window_view(self, show: bool) -> None:
+        """
+        Show or hide the stream stats window.
+
+        :param show: A boolean.
+        :return: None.
+        """
+        if show:
+            self.stat_window.deiconify()
+            self.stat_window.lift()
+        else:
+            self.stat_window.withdraw()
 
     def open_pan_tilt_control_panel(self) -> None:
         """
@@ -1093,8 +1161,10 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         try:
-            image = self.image_queue.get_nowait()
+            image, self.curr_img_size = self.image_queue.get_nowait()
             self.curr_img = image
+            self.frames_got += 1
+            self.frames_this_sec += 1
             self.image_label.image = ImageTk.PhotoImage(image)
         except queue.Empty:
             pass
@@ -1117,15 +1187,16 @@ class RemotePiCamGUI(MainWindow):
         :return: None.
         """
         try:
+            self.frames_got = 0
             while self.cam.is_connected:
                 try:
-                    image, _ = self.cam.get_image()
+                    image, size = self.cam.get_image()
                 except TypeError:
                     break
                 if self.image_queue.full():
                     self.image_queue.get()
                 if not self.stream_paused_var.get():
-                    self.image_queue.put(image)
+                    self.image_queue.put((image, size))
         finally:
             self.spawn_disconnect_thread()
 
